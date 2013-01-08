@@ -5,8 +5,8 @@ import re
 from bson import DBRef, ObjectId
 from minimongo.collection import DummyCollection
 from minimongo.options import _Options
-from pymongo import Connection
-
+from pymongo import MongoReplicaSetClient
+from pymongo.read_preference import ReadPreference 
 
 class ModelBase(type):
     """Metaclass for all models.
@@ -15,7 +15,7 @@ class ModelBase(type):
               populated from the parrent's Meta if any.
     """
 
-    # A very rudimentary connection pool.
+    # A very rudimentary connection pool, keyed by replicaSet name.
     _connections = {}
 
     def __new__(mcs, name, bases, attrs):
@@ -44,26 +44,23 @@ class ModelBase(type):
             new_class.collection = DummyCollection
             return new_class
 
-        if not (options.host and options.port and options.database):
+        if not (options.host and options.port and options.database and options.replicaSetName and options.replicaSetUri):
             raise Exception(
-                'Model %r improperly configured: %s %s %s' % (
-                    name, options.host, options.port, options.database))
+                'Model %r improperly configured: %s %s %s %s %s' % (
+                    name, options.host, options.port, options.database, options.replicaSetName, options.replicaSetUri))
 
-        # Checking connection pool for an existing connection.
-        hostport = options.host, options.port
-        if hostport in mcs._connections:
-            connection = mcs._connections[hostport]
+        # Checking connection / client pool for an existing connection / client.
+        replicaSetName = options.replicaSetName
+        if replicaSetName in mcs._connections:
+            client = mcs._connections[replicaSetName]
         else:
-            # _connect=False option
-            # creates :class:`pymongo.connection.Connection` object without
-            # establishing connection. It's required if there is no running
-            # mongodb at this time but we want to create :class:`Model`.
-            connection = Connection(*hostport, _connect=False)
-            mcs._connections[hostport] = connection
+            client = MongoReplicaSetClient(options.replicaSetUri, replicaSet=replicaSetName).test
+            client.read_preference = ReadPreference.SECONDARY_PREFERRED
+            mcs._connections[replicaSetName] = client
 
         new_class._meta = options
-        new_class.connection = connection
-        new_class.database = connection[options.database]
+        new_class.connection = client
+        new_class.database = client[options.database]
         if options.username and options.password:
             new_class.database.authenticate(options.username, options.password)
         new_class.collection = options.collection_class(
