@@ -62,11 +62,11 @@ class ModelBase(type):
             logging.debug("Creating new database client for pool_key=%s" % pool_key)
             if options.replica_set_name:
                 logging.debug("Setting up a replica set client...")
-                client = MongoReplicaSetClient(options.replica_set_uri, replicaSet=options.replica_set_name)[options.database]
+                client = MongoReplicaSetClient(options.replica_set_uri, replicaSet=options.replica_set_name)
                 client.read_preference = ReadPreference.SECONDARY_PREFERRED
             else:
                 logging.debug("Setting up a normal client...")
-                client = MongoClient(options.host, options.port)[options.database]
+                client = MongoClient(options.host, options.port)
 
             mcs._connections[pool_key] = client
  
