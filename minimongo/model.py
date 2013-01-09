@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import copy
-
+import logging
 import re
 from bson import DBRef, ObjectId
 from minimongo.collection import DummyCollection
@@ -53,8 +53,10 @@ class ModelBase(type):
         replicaSetName = options.replicaSetName
         if replicaSetName in mcs._connections:
             client = mcs._connections[replicaSetName]
+            logging.debug("Got database client from pool for replicaSetName=%s" % replicaSetName)
         else:
-            client = MongoReplicaSetClient(options.replicaSetUri, replicaSet=replicaSetName).test
+            logging.debug("Creating new database client for replicaSetName=%s" % replicaSetName)
+            client = MongoReplicaSetClient(options.replicaSetUri, replicaSet=replicaSetName)[options.database]
             client.read_preference = ReadPreference.SECONDARY_PREFERRED
             mcs._connections[replicaSetName] = client
 
