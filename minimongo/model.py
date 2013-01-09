@@ -5,7 +5,7 @@ import re
 from bson import DBRef, ObjectId
 from minimongo.collection import DummyCollection
 from minimongo.options import _Options
-from pymongo import MongoReplicaSetClient
+from pymongo import MongoClient, MongoReplicaSetClient
 from pymongo.read_preferences import ReadPreference 
 
 class ModelBase(type):
