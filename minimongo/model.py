@@ -44,22 +44,32 @@ class ModelBase(type):
             new_class.collection = DummyCollection
             return new_class
 
-        if not (options.host and options.port and options.database and options.replicaSetName and options.replicaSetUri):
+        if not (options.host and options.port and options.database):
             raise Exception(
-                'Model %r improperly configured: %s %s %s %s %s' % (
-                    name, options.host, options.port, options.database, options.replicaSetName, options.replicaSetUri))
+                'Model %r improperly configured: %s %s %s' % (
+                    name, options.host, options.port, options.database))
 
         # Checking connection / client pool for an existing connection / client.
-        replicaSetName = options.replicaSetName
-        if replicaSetName in mcs._connections:
-            client = mcs._connections[replicaSetName]
-            logging.debug("Got database client from pool for replicaSetName=%s" % replicaSetName)
-        else:
-            logging.debug("Creating new database client for replicaSetName=%s" % replicaSetName)
-            client = MongoReplicaSetClient(options.replicaSetUri, replicaSet=replicaSetName)[options.database]
-            client.read_preference = ReadPreference.SECONDARY_PREFERRED
-            mcs._connections[replicaSetName] = client
+        pool_key = options.host,options.port
+        if options.replica_set_name:
+            logging.debug("Using replica_set_name=%s as database pool key." % options.replica_set_name)
+            pool_key = options.replica_set_name
 
+        if pool_key in mcs._connections:
+            client = mcs._connections[pool_key]
+            logging.debug("Got database client from pool for pool_key=%s" % pool_key)
+        else:
+            logging.debug("Creating new database client for pool_key=%s" % pool_key)
+            if options.replica_set_name:
+                logging.debug("Setting up a replica set client...")
+                client = MongoReplicaSetClient(options.replica_set_uri, replicaSet=options.replica_set_name)[options.database]
+                client.read_preference = ReadPreference.SECONDARY_PREFERRED
+            else:
+                logging.debug("Setting up a normal client...")
+                client = MongoClient(options.host, options.port)[options.database]
+
+            mcs._connections[pool_key] = client
+ 
         new_class._meta = options
         new_class.connection = client
         new_class.database = client[options.database]
