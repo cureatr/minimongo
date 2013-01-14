@@ -57,9 +57,9 @@ class ModelBase(type):
 
         if pool_key in mcs._connections:
             client = mcs._connections[pool_key]
-            logging.debug("Got database client from pool for pool_key=%s" % pool_key)
+            logging.debug("Got database client from pool for pool_key=%s" % (pool_key,))
         else:
-            logging.debug("Creating new database client for pool_key=%s" % pool_key)
+            logging.debug("Creating new database client for pool_key=%s" % (pool_key,))
             if options.replica_set_name:
                 logging.debug("Setting up a replica set client...")
                 client = MongoReplicaSetClient(options.replica_set_uri, replicaSet=options.replica_set_name)
