@@ -43,7 +43,7 @@ class PyTest(Command):
 requires = ["pymongo"]
 
 setup(name="minimongo",
-      version="0.3.0",
+      version="0.3.1",
       packages=find_packages(),
       cmdclass={"test": PyTest},
       platforms=["any"],
@@ -58,5 +58,5 @@ setup(name="minimongo",
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
       keywords=["mongo", "mongodb", "pymongo", "orm"],
-      url="http://github.com/slacy/minimongo",
+      url="http://github.com/HappierApp/minimongo",
 )
