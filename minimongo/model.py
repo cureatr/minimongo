@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import copy
-import logging
 import re
 from bson import DBRef, ObjectId
 from minimongo.collection import DummyCollection
@@ -52,20 +51,15 @@ class ModelBase(type):
         # Checking connection / client pool for an existing connection / client.
         pool_key = options.host,options.port
         if options.replica_set_name:
-            logging.debug("Using replica_set_name=%s as database pool key." % options.replica_set_name)
             pool_key = options.replica_set_name
 
         if pool_key in mcs._connections:
             client = mcs._connections[pool_key]
-            logging.debug("Got database client from pool for pool_key=%s" % (pool_key,))
         else:
-            logging.debug("Creating new database client for pool_key=%s" % (pool_key,))
             if options.replica_set_name:
-                logging.debug("Setting up a replica set client...")
                 client = MongoReplicaSetClient(options.replica_set_uri, replicaSet=options.replica_set_name)
                 client.read_preference = ReadPreference.SECONDARY_PREFERRED
             else:
-                logging.debug("Setting up a normal client...")
                 client = MongoClient(options.host, options.port)
 
             mcs._connections[pool_key] = client
