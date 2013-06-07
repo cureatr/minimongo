@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import copy
-
+import logging
 import re
 from bson import DBRef, ObjectId
 from minimongo.collection import DummyCollection
 from minimongo.options import _Options
-from pymongo import Connection
-
+from pymongo import MongoClient, MongoReplicaSetClient
+from pymongo.read_preferences import ReadPreference 
 
 class ModelBase(type):
     """Metaclass for all models.
@@ -15,7 +15,7 @@ class ModelBase(type):
               populated from the parrent's Meta if any.
     """
 
-    # A very rudimentary connection pool.
+    # A very rudimentary connection pool, keyed by replicaSet name.
     _connections = {}
 
     def __new__(mcs, name, bases, attrs):
@@ -49,21 +49,30 @@ class ModelBase(type):
                 'Model %r improperly configured: %s %s %s' % (
                     name, options.host, options.port, options.database))
 
-        # Checking connection pool for an existing connection.
-        hostport = options.host, options.port
-        if hostport in mcs._connections:
-            connection = mcs._connections[hostport]
-        else:
-            # _connect=False option
-            # creates :class:`pymongo.connection.Connection` object without
-            # establishing connection. It's required if there is no running
-            # mongodb at this time but we want to create :class:`Model`.
-            connection = Connection(*hostport, _connect=False)
-            mcs._connections[hostport] = connection
+        # Checking connection / client pool for an existing connection / client.
+        pool_key = options.host,options.port
+        if options.replica_set_name:
+            logging.debug("Using replica_set_name=%s as database pool key." % options.replica_set_name)
+            pool_key = options.replica_set_name
 
+        if pool_key in mcs._connections:
+            client = mcs._connections[pool_key]
+            logging.debug("Got database client from pool for pool_key=%s" % (pool_key,))
+        else:
+            logging.debug("Creating new database client for pool_key=%s" % (pool_key,))
+            if options.replica_set_name:
+                logging.debug("Setting up a replica set client...")
+                client = MongoReplicaSetClient(options.replica_set_uri, replicaSet=options.replica_set_name)
+                client.read_preference = ReadPreference.SECONDARY_PREFERRED
+            else:
+                logging.debug("Setting up a normal client...")
+                client = MongoClient(options.host, options.port)
+
+            mcs._connections[pool_key] = client
+ 
         new_class._meta = options
-        new_class.connection = connection
-        new_class.database = connection[options.database]
+        new_class.connection = client
+        new_class.database = client[options.database]
         if options.username and options.password:
             new_class.database.authenticate(options.username, options.password)
         new_class.collection = options.collection_class(

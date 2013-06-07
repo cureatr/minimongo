@@ -51,6 +51,10 @@ class _Options(object):
     username = None
     password = None
 
+    # Replica set details.
+    replica_set_name = None
+    replica_set_uri = None
+
     # Should indices be created at startup?
     auto_index = True
 
