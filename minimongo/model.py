@@ -58,7 +58,6 @@ class ModelBase(type):
         else:
             if options.replica_set_name:
                 client = MongoReplicaSetClient(options.replica_set_uri, replicaSet=options.replica_set_name)
-                client.read_preference = ReadPreference.SECONDARY_PREFERRED
             else:
                 client = MongoClient(options.host, options.port)
 
