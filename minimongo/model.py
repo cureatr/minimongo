@@ -226,11 +226,11 @@ class Model(AttrDict):
         """Allow partial loading of a document.
         :attr:fields is a dictionary as per the pymongo specs
 
-        self.collection.find_one( self._id, fields={'name': 1} )
+        self.collection.find_one( self._id, {'name': 1} )
 
         """
         values = self.collection.find_one({'_id': self._id},
-                                          fields=fields, **kwargs)
+                                          fields, **kwargs)
         # Merge the loaded values with whatever is currently in self.
         self.update(values)
         return self
