@@ -246,17 +246,16 @@ def test_index_existance():
 
 def test_unique_index():
     '''Test behavior of indices with unique=True'''
-    # This will work (y is undefined)
     TestModelUnique({'x': 1}).save()
-    TestModelUnique({'x': 1}).save()
-    # Assert that there's only one object in the collection, even though
-    # we inserted two.  The uniqueness constraint on the index has dropped
-    # one of the inserts (silently, I guess).
+    with pytest.raises(DuplicateKeyError):
+        TestModelUnique({'x': 1}).save()
+    # Assert that there's only one object in the collection
     assert TestModelUnique.collection.find().count() == 1
 
     # Even if we use different values for y, it's still only one object:
     TestModelUnique({'x': 2, 'y': 1}).save()
-    TestModelUnique({'x': 2, 'y': 2}).save()
+    with pytest.raises(DuplicateKeyError):
+        TestModelUnique({'x': 2, 'y': 2}).save()
     # There are now 2 objects, one with x=1, one with x=2.
     assert TestModelUnique.collection.find().count() == 2
 
