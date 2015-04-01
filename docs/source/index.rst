@@ -45,11 +45,6 @@ Features
   own simple Connection pool. Connections are persistent and last the lifetime
   of your application.
 
-* **Friendly support for DBRef types**
-
-  ``minimongo`` can easily generate fully-specified DBRef objects, and store
-  these into fields. Fetching via DBRef is simplified as well.
-
 * **Uses pymongo's native query syntax**
 
   Query methods are passed directly to pymongo_'s API. ``minimongo`` provides

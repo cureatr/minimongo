@@ -111,36 +111,6 @@ All you need to do is:
           :meth:`Model.save`. It can't get easier than that!
 
 
-Working with DBRefs
--------------------
-
-``minimongo`` provides easy support for stored references via :class:`bson.dbref.DBRef`
-fields. To generate a *DBRef*, just call :meth:`Model.dbref` method. If you have
-a fied that you know is a *DBRef*, then you can use :meth:`Collection.from_dbref`
-method to query via that field. For example::
-
-    from minimongo import configure, Model
-
-    configure(database="minimongo")
-
-    class First(Model):
-        pass
-
-    class Second(Model):
-        pass
-
-
-    first = First({"x": 1}).save()
-
-    # Create an object that references the first.  Can be in a different
-    # collection and an different database.
-    second = Second({"y": 1, "first": first.dbref()}).save()
-
-    # Given the reference, fetch the object. `re_first` and `first`
-    # are now two instances of the same object.
-    re_first = First.collection.from_dbref(second.first)
-
-
 Adding indices
 --------------
 

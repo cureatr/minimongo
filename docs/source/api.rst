@@ -8,10 +8,10 @@ API
 .. autofunction:: configure
 
 .. autoclass:: Collection
-      :members: document_class, find, find_one, from_dbref
+      :members: document_class, find, find_one
 
 .. autoclass:: Model
-      :members: dbref, auto_index, save, remove, mongo_update
+      :members: auto_index, save, remove, mongo_update
 
 .. autoclass:: Index
       :members: __eq__, ensure

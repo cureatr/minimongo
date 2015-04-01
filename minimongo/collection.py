@@ -42,23 +42,6 @@ class Collection(PyMongoCollection):
         """
         return Cursor(self, *args, wrap=self.document_class, **kwargs)
 
-    def from_dbref(self, dbref):
-        """Given a :class:`pymongo.dbref.DBRef`, dereferences it and
-        returns a corresponding document, wrapped in an appropriate model
-        class.
-
-        .. note:: If a given `dbref` point to a different database and
-                  / or collection, :exc:`ValueError` is raised.
-        """
-        # Making sure a given DBRef points to a proper collection
-        # and database.
-        if not dbref.collection == self.name:
-            raise ValueError('DBRef points to an invalid collection.')
-        elif dbref.database and not dbref.database == self.database.name:
-            raise ValueError('DBRef points to an invalid database.')
-        else:
-            return self.find_one(dbref.id)
-
 
 class DummyCollection(object):
     @classmethod

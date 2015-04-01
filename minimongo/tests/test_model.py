@@ -5,7 +5,6 @@ import operator
 
 import pytest
 
-from bson import DBRef
 from minimongo import Collection, Index, Model
 from pymongo.errors import DuplicateKeyError
 
@@ -399,40 +398,6 @@ def test_fetch_and_limit():
     assert find_x1.count(with_limit_and_skip=True) == 2
     assert object_a in find_x1
     assert object_b in find_x1
-
-
-def test_dbref():
-    '''Test generation of DBRef objects, and querying via DBRef
-    objects.'''
-    object_a = MiniTestModel({'x': 1, 'y': 999}).save()
-    ref_a = object_a.dbref()
-
-    object_b = MiniTestModel.collection.from_dbref(ref_a)
-    assert object_a == object_b
-
-    # Making sure, that a ValueError is raised for DBRefs from a
-    # 'foreign' collection or database.
-    with pytest.raises(ValueError):
-        ref_a = DBRef('foo', ref_a.id)
-        MiniTestModel.collection.from_dbref(ref_a)
-
-    with pytest.raises(ValueError):
-        ref_a = DBRef(ref_a.collection, ref_a.id, 'foo')
-        MiniTestModel.collection.from_dbref(ref_a)
-
-    # Testing ``with_database`` option.
-    ref_a = object_a.dbref(with_database=False)
-    assert ref_a.database is None
-
-    ref_a = object_a.dbref(with_database=True)
-    assert ref_a.database is not None
-
-    ref_a = object_a.dbref()  # True by default.
-    assert ref_a.database is not None
-
-    # Testing additional fields
-    ref_a = object_a.dbref(name="foo")
-    assert ref_a.name == 'foo'
 
 
 def test_db_and_collection_names():
