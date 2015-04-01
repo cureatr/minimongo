@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import copy
 import re
+import warnings
 from bson import DBRef, ObjectId
 from minimongo.collection import DummyCollection
 from minimongo.options import _Options
-from pymongo import MongoClient, MongoReplicaSetClient
-from pymongo.read_preferences import ReadPreference 
+import pymongo
+
 
 class ModelBase(type):
     """Metaclass for all models.
@@ -31,8 +32,7 @@ class ModelBase(type):
         except AttributeError:
             meta = None
         else:
-            delattr(new_class, 'Meta')  # Won't need the original metadata
-                                        # container anymore.
+            delattr(new_class, 'Meta')  # Won't need the original metadata any more
 
         options = _Options(meta)
         options.collection = options.collection or to_underscore(name)
@@ -49,7 +49,7 @@ class ModelBase(type):
                     name, options.host, options.port, options.database))
 
         # Checking connection / client pool for an existing connection / client.
-        pool_key = options.host,options.port
+        pool_key = options.host, options.port
         if options.replica_set_name:
             pool_key = options.replica_set_name
 
@@ -57,12 +57,12 @@ class ModelBase(type):
             client = mcs._connections[pool_key]
         else:
             if options.replica_set_name:
-                client = MongoReplicaSetClient(options.replica_set_uri, replicaSet=options.replica_set_name)
+                client = pymongo.MongoClient(options.replica_set_uri, replicaSet=options.replica_set_name)
             else:
-                client = MongoClient(options.host, options.port)
+                client = pymongo.MongoClient(options.host, options.port)
 
             mcs._connections[pool_key] = client
- 
+
         new_class._meta = options
         new_class.connection = client
         new_class.database = client[options.database]
@@ -203,23 +203,30 @@ class Model(AttrDict):
 
     def remove(self):
         """Remove this object from the database."""
-        return self.collection.remove(self._id)
+        return self.collection.delete_one({"_id": self._id})
 
     def mongo_update(self, values=None, **kwargs):
         """Update database data with object data."""
+        if kwargs:
+            warnings.warn("minimongo mongo_update() no longer supports keyword arguments")
         # Allow to update external values as well as the model itself
         if not values:
             # Remove the _id and wrap self into a $set statement.
             self_copy = copy.copy(self)
             del self_copy._id
             values = {'$set': self_copy}
-        self.collection.update({'_id': self._id}, values, **kwargs)
+        self.collection.update_one({'_id': self._id}, values)
 
         return self
 
     def save(self, *args, **kwargs):
         """Save this object to it's mongo collection."""
-        self.collection.save(self, *args, **kwargs)
+        if args or kwargs:
+            warnings.warn("minimongo save() no longer supports arguments")
+        if "_id" not in self:
+            self.collection.insert_one(self)
+        else:
+            self.collection.replace_one({"_id": self._id}, self, upsert=True)
         return self
 
     def load(self, fields=None, **kwargs):

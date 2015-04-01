@@ -3,8 +3,8 @@
 from pymongo.collection import Collection as PyMongoCollection
 from pymongo.cursor import Cursor as PyMongoCursor
 
-class Cursor(PyMongoCursor):
 
+class Cursor(PyMongoCursor):
     def __init__(self, *args, **kwargs):
         self._wrapper_class = kwargs.pop('wrap')
         super(Cursor, self).__init__(*args, **kwargs)
@@ -15,7 +15,7 @@ class Cursor(PyMongoCursor):
 
     def __getitem__(self, index):
         if isinstance(index, slice):
-            return super(Cursor, self).__getitem__(index)
+            return [self._wrapper_class(m) for m in super(Cursor, self).__getitem__(index)]
         else:
             return self._wrapper_class(super(Cursor, self).__getitem__(index))
 
@@ -41,15 +41,6 @@ class Collection(PyMongoCollection):
         it returns the right document class.
         """
         return Cursor(self, *args, wrap=self.document_class, **kwargs)
-
-    def find_one(self, *args, **kwargs):
-        """Same as :meth:`pymongo.collection.Collection.find_one`, except
-        it returns the right document class.
-        """
-        data = super(Collection, self).find_one(*args, **kwargs)
-        if data:
-            return self.document_class(data)
-        return None
 
     def from_dbref(self, dbref):
         """Given a :class:`pymongo.dbref.DBRef`, dereferences it and

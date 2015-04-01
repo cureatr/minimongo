@@ -161,17 +161,6 @@ def test_find_one():
     assert found == model
 
 
-def test_save_with_arguments():
-    # Manipulate is what inserts the _id on save if it is missing
-    model = TestModel(foo=0)
-    model.save(manipulate=False)
-    with pytest.raises(AttributeError):
-        _value = model._id
-    # but the object was actually saved
-    model = TestModel.collection.find_one({'foo': 0})
-    assert model.foo == 0
-
-
 def test_mongo_update():
     """Test update. note that update does not sync back the server copy."""
     model = TestModel(counter=10, x=0, y=1)
@@ -205,12 +194,12 @@ def test_load():
     object_a = TestModel(x=0, y=1).save()
     object_b = TestModel(_id=object_a._id)
     with pytest.raises(AttributeError):
-        _value = object_b.x
+        object_b.x
     # Partial load. only the x value
     object_b.load(fields={'x': 1})
     assert object_b.x == object_a.x
     with pytest.raises(AttributeError):
-        _value = object_b.y
+        object_b.y
 
     # Complete load. change the value first
     object_a.x = 2
@@ -231,7 +220,7 @@ def test_load_and_field_mapper():
     object_b.load(fields={'x': 1})
     assert object_b.x == 16.0
     with pytest.raises(AttributeError):
-        _value = object_b.y  # object_b does not have the 'y' field
+        object_b.y  # object_b does not have the 'y' field
 
     object_b.load()
     assert object_b.y == 1
@@ -241,7 +230,7 @@ def test_index_existance():
     '''Test that indexes were created properly.'''
     indices = TestModel.collection.index_information()
     assert (indices['x_1'] == {'key': [('x', 1)]})\
-        or (indices['x_1'] == {u'key': [(u'x', 1)], u'v': 1})
+        or (indices['x_1'] == {u'ns': u'minimongo_test.minimongo_test', u'key': [(u'x', 1)], u'v': 1})
 
 
 def test_unique_index():
@@ -263,10 +252,10 @@ def test_unique_index():
 def test_unique_constraint():
     x1_a = TestModelUnique({'x': 1, 'y': 1})
     x1_b = TestModelUnique({'x': 1, 'y': 2})
-    x1_a.save(safe=True)
+    x1_a.save()
 
     with pytest.raises(DuplicateKeyError):
-        x1_b.save(safe=True)
+        x1_b.save()
 
     x1_c = TestModelUnique({'x': 2, 'y': 1})
     x1_c.save()
@@ -504,19 +493,19 @@ def test_auto_collection_name():
 def test_no_auto_index():
     TestNoAutoIndexModel({'x': 1}).save()
 
-    assert (TestNoAutoIndexModel.collection.index_information() == \
-           {u'_id_': {u'key': [(u'_id', 1)]}})\
-           or (TestNoAutoIndexModel.collection.index_information() ==\
-           {u'_id_': {u'key': [(u'_id', 1)], u'v': 1}})
+    assert (TestNoAutoIndexModel.collection.index_information() ==
+            {u'_id_': {u'key': [(u'_id', 1)]}})\
+        or (TestNoAutoIndexModel.collection.index_information() ==
+            {u'_id_': {u'key': [(u'_id', 1)], u'v': 1, u'ns': u'minimongo_test.minimongo_noidex', }})
 
     TestNoAutoIndexModel.auto_index()
 
-    assert (TestNoAutoIndexModel.collection.index_information() == \
-           {u'_id_': {u'key': [(u'_id', 1)],  u'v': 1},
-            u'x_1': {u'key': [(u'x', 1)],  u'v': 1}})\
-            or (TestNoAutoIndexModel.collection.index_information() == \
+    assert (TestNoAutoIndexModel.collection.index_information() ==
+            {u'_id_': {u'key': [(u'_id', 1)],  u'v': 1, u'ns': u'minimongo_test.minimongo_noidex'},
+             u'x_1': {u'key': [(u'x', 1)],  u'v': 1, u'ns': u'minimongo_test.minimongo_noidex'}})\
+        or (TestNoAutoIndexModel.collection.index_information() ==
             {u'_id_': {u'key': [(u'_id', 1)]},
-            u'x_1': {u'key': [(u'x', 1)]}})
+             u'x_1': {u'key': [(u'x', 1)]}})
 
 
 def test_interface_models():

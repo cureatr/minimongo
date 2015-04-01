@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+
 class Index(object):
     """A simple wrapper for arguments to
     :meth:`pymongo.collection.Collection.ensure_index`."""
@@ -19,7 +20,7 @@ class Index(object):
         return self.__dict__ == other.__dict__
 
     def ensure(self, collection):
-        """Calls :meth:`pymongo.collection.Collection.ensure_index`
+        """Calls :meth:`pymongo.collection.Collection.create_index`
         on the given `collection` with the stored arguments.
         """
-        return collection.ensure_index(*self._args, **self._kwargs)
+        return collection.create_index(*self._args, **self._kwargs)

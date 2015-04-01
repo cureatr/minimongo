@@ -43,12 +43,12 @@ class PyTest(Command):
 requires = ["pymongo"]
 
 setup(name="minimongo",
-      version="1.0.0cureatr",
+      version="3.0.0cureatr",
       packages=find_packages(),
       cmdclass={"test": PyTest},
       platforms=["any"],
 
-      install_requires = ["pymongo>=2.4"],
+      install_requires=["pymongo>=3.0"],
       zip_safe=False,
       include_package_data=True,
 
