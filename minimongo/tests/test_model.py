@@ -10,12 +10,12 @@ from minimongo import Collection, Index, Model
 from pymongo.errors import DuplicateKeyError
 
 
-class TestCollection(Collection):
+class MiniTestCollection(Collection):
     def custom(self):
         return 'It works!'
 
 
-class TestModel(Model):
+class MiniTestModel(Model):
     '''Model class for test cases.'''
     class Meta:
         database = 'minimongo_test'
@@ -30,15 +30,15 @@ class TestModel(Model):
         self.save()
 
 
-class TestModelCollection(Model):
+class MiniTestModelCollection(Model):
     '''Model class with a custom collection class.'''
     class Meta:
         database = 'minimongo_test'
         collection = 'minimongo_collection'
-        collection_class = TestCollection
+        collection_class = MiniTestCollection
 
 
-class TestModelUnique(Model):
+class MiniTestModelUnique(Model):
     class Meta:
         database = 'minimongo_test'
         collection = 'minimongo_unique'
@@ -47,13 +47,13 @@ class TestModelUnique(Model):
         )
 
 
-class TestDerivedModel(TestModel):
+class MiniTestDerivedModel(MiniTestModel):
     class Meta:
         database = 'minimongo_test'
         collection = 'minimongo_derived'
 
 
-class TestNoAutoIndexModel(Model):
+class MiniTestNoAutoIndexModel(Model):
     class Meta:
         database = 'minimongo_test'
         collection = 'minimongo_noidex'
@@ -63,18 +63,18 @@ class TestNoAutoIndexModel(Model):
         auto_index = False
 
 
-class TestModelInterface(Model):
+class MiniTestModelInterface(Model):
     class Meta:
         interface = True
 
 
-class TestModelImplementation(TestModelInterface):
+class MiniTestModelImplementation(MiniTestModelInterface):
     class Meta:
         database = 'minimongo_test'
         collection = 'minimongo_impl'
 
 
-class TestFieldMapper(Model):
+class MiniTestFieldMapper(Model):
     class Meta:
         database = 'minimongo_test'
         collection = 'minimongo_mapper'
@@ -86,23 +86,23 @@ class TestFieldMapper(Model):
 
 def setup():
     # Make sure we start with a clean, empty DB.
-    TestModel.connection.drop_database(TestModel.database)
+    MiniTestModel.connection.drop_database(MiniTestModel.database)
 
     # Create indices up front
-    TestModel.auto_index()
-    TestModelUnique.auto_index()
+    MiniTestModel.auto_index()
+    MiniTestModelUnique.auto_index()
 
 
 def teardown():
     # This will drop the entire minimongo_test database.  Careful!
-    TestModel.connection.drop_database(TestModel.database)
+    MiniTestModel.connection.drop_database(MiniTestModel.database)
 
 
 def test_meta():
-    assert hasattr(TestModel, '_meta')
-    assert not hasattr(TestModel, 'Meta')
+    assert hasattr(MiniTestModel, '_meta')
+    assert not hasattr(MiniTestModel, 'Meta')
 
-    meta = TestModel._meta
+    meta = MiniTestModel._meta
 
     for attr in ('host', 'port', 'indices', 'database',
                  'collection', 'collection_class'):
@@ -114,7 +114,7 @@ def test_meta():
 
 
 def test_dictyness():
-    item = TestModel({'x': 642})
+    item = MiniTestModel({'x': 642})
 
     assert item['x'] == item.x == 642
 
@@ -132,14 +132,14 @@ def test_dictyness():
 
 def test_creation():
     '''Test simple object creation and querying via find_one.'''
-    object_a = TestModel({'x': 1, 'y': 1})
+    object_a = MiniTestModel({'x': 1, 'y': 1})
     object_a.z = 1
     object_a.save()
 
-    object_b = TestModel.collection.find_one({'x': 1})
+    object_b = MiniTestModel.collection.find_one({'x': 1})
 
     # Make sure that the find_one method returns the right type.
-    assert isinstance(object_b, TestModel)
+    assert isinstance(object_b, MiniTestModel)
     # Make sure that the contents are the same.
     assert object_b == object_a
 
@@ -150,20 +150,20 @@ def test_creation():
 
 
 def test_find_one():
-    model = TestModel({'x': 1, 'y': 1})
+    model = MiniTestModel({'x': 1, 'y': 1})
     model.save()
 
     assert model._id is not None
 
-    found = TestModel.collection.find_one(model._id)
+    found = MiniTestModel.collection.find_one(model._id)
     assert found is not None
-    assert isinstance(found, TestModel)
+    assert isinstance(found, MiniTestModel)
     assert found == model
 
 
 def test_mongo_update():
     """Test update. note that update does not sync back the server copy."""
-    model = TestModel(counter=10, x=0, y=1)
+    model = MiniTestModel(counter=10, x=0, y=1)
     model.save()
 
     # NOTE: These tests below could be thought of outlining existing
@@ -182,7 +182,7 @@ def test_mongo_update():
     assert model.counter == 10
 
     # reload the model.  This will pull in the "true" document from the server.
-    model = TestModel.collection.find_one({'_id': model._id})
+    model = MiniTestModel.collection.find_one({'_id': model._id})
     assert model.counter == 11
     assert model.x == 0
     assert model.y == 1
@@ -191,8 +191,8 @@ def test_mongo_update():
 def test_load():
     """Partial loading of documents.x"""
     # object_a and object_b are 2 instances of the same document
-    object_a = TestModel(x=0, y=1).save()
-    object_b = TestModel(_id=object_a._id)
+    object_a = MiniTestModel(x=0, y=1).save()
+    object_b = MiniTestModel(_id=object_a._id)
     with pytest.raises(AttributeError):
         object_b.x
     # Partial load. only the x value
@@ -210,8 +210,8 @@ def test_load():
 
 
 def test_load_and_field_mapper():
-    object_a = TestFieldMapper(x=12, y=1).save()
-    object_b = TestFieldMapper(_id=object_a._id)
+    object_a = MiniTestFieldMapper(x=12, y=1).save()
+    object_b = MiniTestFieldMapper(_id=object_a._id)
 
     # X got mapped (multiplied by 4/3 and converted to object_a float)
     assert object_a.x == 16.0
@@ -228,49 +228,49 @@ def test_load_and_field_mapper():
 
 def test_index_existance():
     '''Test that indexes were created properly.'''
-    indices = TestModel.collection.index_information()
+    indices = MiniTestModel.collection.index_information()
     assert (indices['x_1'] == {'key': [('x', 1)]})\
         or (indices['x_1'] == {u'ns': u'minimongo_test.minimongo_test', u'key': [(u'x', 1)], u'v': 1})
 
 
 def test_unique_index():
     '''Test behavior of indices with unique=True'''
-    TestModelUnique({'x': 1}).save()
+    MiniTestModelUnique({'x': 1}).save()
     with pytest.raises(DuplicateKeyError):
-        TestModelUnique({'x': 1}).save()
+        MiniTestModelUnique({'x': 1}).save()
     # Assert that there's only one object in the collection
-    assert TestModelUnique.collection.find().count() == 1
+    assert MiniTestModelUnique.collection.find().count() == 1
 
     # Even if we use different values for y, it's still only one object:
-    TestModelUnique({'x': 2, 'y': 1}).save()
+    MiniTestModelUnique({'x': 2, 'y': 1}).save()
     with pytest.raises(DuplicateKeyError):
-        TestModelUnique({'x': 2, 'y': 2}).save()
+        MiniTestModelUnique({'x': 2, 'y': 2}).save()
     # There are now 2 objects, one with x=1, one with x=2.
-    assert TestModelUnique.collection.find().count() == 2
+    assert MiniTestModelUnique.collection.find().count() == 2
 
 
 def test_unique_constraint():
-    x1_a = TestModelUnique({'x': 1, 'y': 1})
-    x1_b = TestModelUnique({'x': 1, 'y': 2})
+    x1_a = MiniTestModelUnique({'x': 1, 'y': 1})
+    x1_b = MiniTestModelUnique({'x': 1, 'y': 2})
     x1_a.save()
 
     with pytest.raises(DuplicateKeyError):
         x1_b.save()
 
-    x1_c = TestModelUnique({'x': 2, 'y': 1})
+    x1_c = MiniTestModelUnique({'x': 2, 'y': 1})
     x1_c.save()
 
 
 def test_queries():
     '''Test some more complex query forms.'''
-    object_a = TestModel({'x': 1, 'y': 1}).save()
-    object_b = TestModel({'x': 1, 'y': 2}).save()
-    object_c = TestModel({'x': 2, 'y': 2}).save()
-    object_d = TestModel({'x': 2, 'y': 1}).save()
+    object_a = MiniTestModel({'x': 1, 'y': 1}).save()
+    object_b = MiniTestModel({'x': 1, 'y': 2}).save()
+    object_c = MiniTestModel({'x': 2, 'y': 2}).save()
+    object_d = MiniTestModel({'x': 2, 'y': 1}).save()
 
-    found_x1 = TestModel.collection.find({'x': 1})
-    found_y1 = TestModel.collection.find({'y': 1})
-    found_x2y2 = TestModel.collection.find({'x': 2, 'y': 2})
+    found_x1 = MiniTestModel.collection.find({'x': 1})
+    found_y1 = MiniTestModel.collection.find({'y': 1})
+    found_x2y2 = MiniTestModel.collection.find({'x': 2, 'y': 2})
 
     list_x1 = list(found_x1)
     list_y1 = list(found_y1)
@@ -278,7 +278,7 @@ def test_queries():
 
     # make sure the types of the things coming back from find() are the
     # derived Model types, not just a straight dict.
-    assert isinstance(list_x1[0], TestModel)
+    assert isinstance(list_x1[0], MiniTestModel)
 
     assert object_a in list_x1
     assert object_b in list_x1
@@ -289,23 +289,23 @@ def test_queries():
 
 def test_deletion():
     '''Test deleting an object from a collection.'''
-    object_a = TestModel()
+    object_a = MiniTestModel()
     object_a.x = 100
     object_a.y = 200
     object_a.save()
 
-    object_b = TestModel.collection.find({'x': 100})
+    object_b = MiniTestModel.collection.find({'x': 100})
     assert object_b.count() == 1
 
     map(operator.methodcaller('remove'), object_b)
 
-    object_a = TestModel.collection.find({'x': 100})
+    object_a = MiniTestModel.collection.find({'x': 100})
     assert object_a.count() == 0
 
 
 def test_complex_types():
     '''Test lists as types.'''
-    object_a = TestModel()
+    object_a = MiniTestModel()
     object_a.l = ['a', 'b', 'c']
     object_a.x = 1
     object_a.y = {'m': 'n',
@@ -315,7 +315,7 @@ def test_complex_types():
 
     object_a.save()
 
-    object_b = TestModel.collection.find_one({'x': 1})
+    object_b = MiniTestModel.collection.find_one({'x': 1})
 
     # Make sure the internal lists are equivalent.
     assert object_a.l == object_b.l
@@ -323,7 +323,7 @@ def test_complex_types():
     # Make sure that everything is of the right type, including the types of
     # the nested fields that we read back from the DB, and that we are able
     # to access fields as both attrs and items.
-    assert type(object_a) == type(object_b) == TestModel
+    assert type(object_a) == type(object_b) == MiniTestModel
     assert isinstance(object_a.y, dict)
     assert isinstance(object_b.y, dict)
     assert isinstance(object_a['z'], dict)
@@ -343,41 +343,41 @@ def test_complex_types():
 
 
 def test_type_from_cursor():
-    object_a = TestModel({'x':1}).save()
-    object_b = TestModel({'x':2}).save()
-    object_c = TestModel({'x':3}).save()
-    object_d = TestModel({'x':4}).save()
-    object_e = TestModel({'x':5}).save()
+    object_a = MiniTestModel({'x':1}).save()
+    object_b = MiniTestModel({'x':2}).save()
+    object_c = MiniTestModel({'x':3}).save()
+    object_d = MiniTestModel({'x':4}).save()
+    object_e = MiniTestModel({'x':5}).save()
 
-    objects = TestModel.collection.find()
+    objects = MiniTestModel.collection.find()
     for single_object in objects:
-        assert type(single_object) == TestModel
-        # Make sure it's both a dict and a TestModel, which is also an object
+        assert type(single_object) == MiniTestModel
+        # Make sure it's both a dict and a MiniTestModel, which is also an object
         assert isinstance(single_object, dict)
         assert isinstance(single_object, object)
-        assert isinstance(single_object, TestModel)
+        assert isinstance(single_object, MiniTestModel)
         assert type(single_object['x']) == int
 
 
 def test_delete_field():
     '''Test deleting a single field from an object.'''
-    object_a = TestModel({'x': 1, 'y': 2})
+    object_a = MiniTestModel({'x': 1, 'y': 2})
     object_a.save()
     del object_a.x
     object_a.save()
 
-    assert TestModel.collection.find_one({'y': 2}) == \
+    assert MiniTestModel.collection.find_one({'y': 2}) == \
            {'y': 2, '_id': object_a._id}
 
 
 def test_count_and_fetch():
     '''Test counting methods on Cursors. '''
-    object_d = TestModel({'x': 1, 'y': 4}).save()
-    object_b = TestModel({'x': 1, 'y': 2}).save()
-    object_a = TestModel({'x': 1, 'y': 1}).save()
-    object_c = TestModel({'x': 1, 'y': 3}).save()
+    object_d = MiniTestModel({'x': 1, 'y': 4}).save()
+    object_b = MiniTestModel({'x': 1, 'y': 2}).save()
+    object_a = MiniTestModel({'x': 1, 'y': 1}).save()
+    object_c = MiniTestModel({'x': 1, 'y': 3}).save()
 
-    find_x1 = TestModel.collection.find({'x': 1}).sort('y')
+    find_x1 = MiniTestModel.collection.find({'x': 1}).sort('y')
     assert find_x1.count() == 4
 
     list_x1 = list(find_x1)
@@ -389,12 +389,12 @@ def test_count_and_fetch():
 
 def test_fetch_and_limit():
     '''Test counting methods on Cursors. '''
-    object_a = TestModel({'x': 1, 'y': 1}).save()
-    object_b = TestModel({'x': 1, 'y': 2}).save()
-    TestModel({'x': 1, 'y': 4}).save()
-    TestModel({'x': 1, 'y': 3}).save()
+    object_a = MiniTestModel({'x': 1, 'y': 1}).save()
+    object_b = MiniTestModel({'x': 1, 'y': 2}).save()
+    MiniTestModel({'x': 1, 'y': 4}).save()
+    MiniTestModel({'x': 1, 'y': 3}).save()
 
-    find_x1 = TestModel.collection.find({'x': 1}).limit(2).sort('y')
+    find_x1 = MiniTestModel.collection.find({'x': 1}).limit(2).sort('y')
 
     assert find_x1.count(with_limit_and_skip=True) == 2
     assert object_a in find_x1
@@ -404,21 +404,21 @@ def test_fetch_and_limit():
 def test_dbref():
     '''Test generation of DBRef objects, and querying via DBRef
     objects.'''
-    object_a = TestModel({'x': 1, 'y': 999}).save()
+    object_a = MiniTestModel({'x': 1, 'y': 999}).save()
     ref_a = object_a.dbref()
 
-    object_b = TestModel.collection.from_dbref(ref_a)
+    object_b = MiniTestModel.collection.from_dbref(ref_a)
     assert object_a == object_b
 
     # Making sure, that a ValueError is raised for DBRefs from a
     # 'foreign' collection or database.
     with pytest.raises(ValueError):
         ref_a = DBRef('foo', ref_a.id)
-        TestModel.collection.from_dbref(ref_a)
+        MiniTestModel.collection.from_dbref(ref_a)
 
     with pytest.raises(ValueError):
         ref_a = DBRef(ref_a.collection, ref_a.id, 'foo')
-        TestModel.collection.from_dbref(ref_a)
+        MiniTestModel.collection.from_dbref(ref_a)
 
     # Testing ``with_database`` option.
     ref_a = object_a.dbref(with_database=False)
@@ -438,45 +438,45 @@ def test_dbref():
 def test_db_and_collection_names():
     '''Test the methods that return the current class's DB and
     Collection names.'''
-    object_a = TestModel({'x': 1})
+    object_a = MiniTestModel({'x': 1})
     assert object_a.database.name == 'minimongo_test'
-    assert TestModel.database.name == 'minimongo_test'
+    assert MiniTestModel.database.name == 'minimongo_test'
     assert object_a.collection.name == 'minimongo_test'
-    assert TestModel.collection.name == 'minimongo_test'
+    assert MiniTestModel.collection.name == 'minimongo_test'
 
 
 def test_derived():
     '''Test Models that are derived from other models.'''
-    derived_object = TestDerivedModel()
+    derived_object = MiniTestDerivedModel()
     derived_object.a_method()
 
     assert derived_object.database.name == 'minimongo_test'
     assert derived_object.collection.name == 'minimongo_derived'
 
-    assert TestDerivedModel.collection.find_one({'x': 123}) == derived_object
+    assert MiniTestDerivedModel.collection.find_one({'x': 123}) == derived_object
 
 
 def test_collection_class():
-    model = TestModelCollection()
+    model = MiniTestModelCollection()
 
-    assert isinstance(model.collection, TestCollection)
+    assert isinstance(model.collection, MiniTestCollection)
     assert hasattr(model.collection, 'custom')
     assert model.collection.custom() == 'It works!'
 
 
 def test_str_and_unicode():
-    assert str(TestModel()) == 'TestModel({})'
-    assert str(TestModel({'foo': 'bar'})) == 'TestModel({\'foo\': \'bar\'})'
+    assert str(MiniTestModel()) == 'MiniTestModel({})'
+    assert str(MiniTestModel({'foo': 'bar'})) == 'MiniTestModel({\'foo\': \'bar\'})'
 
-    assert unicode(TestModel({'foo': 'bar'})) == \
-           u'TestModel({\'foo\': \'bar\'})'
+    assert unicode(MiniTestModel({'foo': 'bar'})) == \
+        u'MiniTestModel({\'foo\': \'bar\'})'
 
     # __unicode__() doesn't decode any bytestring values to unicode,
     # leaving it up to the user.
-    assert unicode(TestModel({'foo': '←'})) ==  \
-           u'TestModel({\'foo\': \'\\xe2\\x86\\x90\'})'
-    assert unicode(TestModel({'foo': u'←'})) == \
-           u'TestModel({\'foo\': u\'\\u2190\'})'
+    assert unicode(MiniTestModel({'foo': '←'})) ==  \
+        u'MiniTestModel({\'foo\': \'\\xe2\\x86\\x90\'})'
+    assert unicode(MiniTestModel({'foo': u'←'})) == \
+        u'MiniTestModel({\'foo\': u\'\\u2190\'})'
 
 
 def test_auto_collection_name():
@@ -491,40 +491,40 @@ def test_auto_collection_name():
 
 
 def test_no_auto_index():
-    TestNoAutoIndexModel({'x': 1}).save()
+    MiniTestNoAutoIndexModel({'x': 1}).save()
 
-    assert (TestNoAutoIndexModel.collection.index_information() ==
+    assert (MiniTestNoAutoIndexModel.collection.index_information() ==
             {u'_id_': {u'key': [(u'_id', 1)]}})\
-        or (TestNoAutoIndexModel.collection.index_information() ==
+        or (MiniTestNoAutoIndexModel.collection.index_information() ==
             {u'_id_': {u'key': [(u'_id', 1)], u'v': 1, u'ns': u'minimongo_test.minimongo_noidex', }})
 
-    TestNoAutoIndexModel.auto_index()
+    MiniTestNoAutoIndexModel.auto_index()
 
-    assert (TestNoAutoIndexModel.collection.index_information() ==
+    assert (MiniTestNoAutoIndexModel.collection.index_information() ==
             {u'_id_': {u'key': [(u'_id', 1)],  u'v': 1, u'ns': u'minimongo_test.minimongo_noidex'},
              u'x_1': {u'key': [(u'x', 1)],  u'v': 1, u'ns': u'minimongo_test.minimongo_noidex'}})\
-        or (TestNoAutoIndexModel.collection.index_information() ==
+        or (MiniTestNoAutoIndexModel.collection.index_information() ==
             {u'_id_': {u'key': [(u'_id', 1)]},
              u'x_1': {u'key': [(u'x', 1)]}})
 
 
 def test_interface_models():
-    test_interface_instance = TestModelInterface()
+    test_interface_instance = MiniTestModelInterface()
     test_interface_instance.x = 5
     with pytest.raises(Exception):
         test_interface_instance.save()
 
-    test_model_instance = TestModelImplementation()
+    test_model_instance = MiniTestModelImplementation()
     test_model_instance.x = 123
     test_model_instance.save()
 
-    test_model_instance_2 = TestModelImplementation.collection.find_one(
+    test_model_instance_2 = MiniTestModelImplementation.collection.find_one(
         {'x': 123})
     assert test_model_instance == test_model_instance_2
 
 
 def test_field_mapper():
-    test_mapped_object = TestFieldMapper()
+    test_mapped_object = MiniTestFieldMapper()
     # x is going to be multiplied by 4/3 automatically.
     test_mapped_object.x = 6
     test_mapped_object.y = 7
@@ -537,7 +537,7 @@ def test_field_mapper():
     assert type(test_mapped_object.z) == float
     test_mapped_object.save()
 
-    loaded_mapped_object = TestFieldMapper.collection.find_one()
+    loaded_mapped_object = MiniTestFieldMapper.collection.find_one()
 
     # When the object was loaded from the database, the mapper automatically
     # multiplied every integer field by 4.0/3.0 and converted it to a float.
@@ -554,22 +554,22 @@ def test_field_mapper():
 
 
 def test_slicing():
-    object_a = TestModel({'x': 1}).save()
-    object_b = TestModel({'x': 2}).save()
-    object_c = TestModel({'x': 3}).save()
-    object_d = TestModel({'x': 4}).save()
-    object_e = TestModel({'x': 5}).save()
+    object_a = MiniTestModel({'x': 1}).save()
+    object_b = MiniTestModel({'x': 2}).save()
+    object_c = MiniTestModel({'x': 3}).save()
+    object_d = MiniTestModel({'x': 4}).save()
+    object_e = MiniTestModel({'x': 5}).save()
 
-    objects = TestModel.collection.find().sort('x')
+    objects = MiniTestModel.collection.find().sort('x')
     obj_list = list(objects[:2])
     assert obj_list == [object_a, object_b]
-    assert type(obj_list[0]) == TestModel
-    assert type(obj_list[1]) == TestModel
+    assert type(obj_list[0]) == MiniTestModel
+    assert type(obj_list[1]) == MiniTestModel
 
     # We can't re-slice an already sliced cursor, so we query again.
-    objects = TestModel.collection.find().sort('x')
+    objects = MiniTestModel.collection.find().sort('x')
     obj_list = list(objects[2:])
     assert obj_list == [object_c, object_d, object_e]
-    assert type(obj_list[0] == TestModel)
-    assert type(obj_list[1] == TestModel)
-    assert type(obj_list[2] == TestModel)
+    assert type(obj_list[0] == MiniTestModel)
+    assert type(obj_list[1] == MiniTestModel)
+    assert type(obj_list[2] == MiniTestModel)
