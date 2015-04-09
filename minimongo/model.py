@@ -190,10 +190,8 @@ class Model(AttrDict):
         """Remove this object from the database."""
         return self.collection.delete_one({"_id": self._id})
 
-    def mongo_update(self, values=None, **kwargs):
+    def mongo_update(self, values=None):
         """Update database data with object data."""
-        if kwargs:
-            warnings.warn("minimongo mongo_update() no longer supports keyword arguments")
         # Allow to update external values as well as the model itself
         if not values:
             # Remove the _id and wrap self into a $set statement.
@@ -204,10 +202,8 @@ class Model(AttrDict):
 
         return self
 
-    def save(self, *args, **kwargs):
+    def save(self):
         """Save this object to it's mongo collection."""
-        if args or kwargs:
-            warnings.warn("minimongo save() no longer supports arguments")
         if "_id" not in self:
             self.collection.insert_one(self)
         else:
